@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "293723234164",
+    "project_id": "wazni-902b8",
+    "storage_bucket": "wazni-902b8.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:293723234164:android:481b5bb5701ff7995b9621",
+        "android_client_info": {
+          "package_name": "com.erihdev.wazni"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD9PIzXTHk4ukO1alUpWt-w32951IxMaes"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
