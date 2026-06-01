@@ -76,7 +76,7 @@ workflows:
         script: flutter pub get
 
       - name: Install CocoaPods dependencies
-        script: find . -name "Podfile" -execdir pod install \;
+        script: cd ios && pod install
 
       - name: Set build number from App Store Connect
         script: |
@@ -84,15 +84,26 @@ workflows:
             "com.erihdev.wazni")
           echo "BUILD_NUMBER=$((BUILD_NUMBER + 1))" >> $CM_ENV
 
-      - name: Build iOS IPA
+      - name: Build iOS app
         script: |
-          flutter build ipa --release \
+          flutter build ios --release \
             --build-name=1.0.0 \
-            --build-number=$BUILD_NUMBER \
-            --export-options-plist=/Users/builder/export_options.plist
+            --build-number=$BUILD_NUMBER
+
+      - name: Archive and export IPA
+        script: |
+          xcodebuild -workspace ios/Runner.xcworkspace \
+            -scheme Runner \
+            -configuration Release \
+            -archivePath /tmp/Runner.xcarchive \
+            archive | xcpretty
+          xcodebuild -exportArchive \
+            -archivePath /tmp/Runner.xcarchive \
+            -exportOptionsPlist /Users/builder/export_options.plist \
+            -exportPath /tmp/ipa | xcpretty
 
     artifacts:
-      - build/ios/ipa/*.ipa
+      - /tmp/ipa/*.ipa
 
     publishing:
       app_store_connect:
