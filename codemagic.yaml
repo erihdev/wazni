@@ -62,7 +62,7 @@ workflows:
     instance_type: mac_mini_m2
 
     environment:
-      flutter: 3.24.5
+      flutter: 3.24.3
       ios_signing:
         distribution_type: app_store
         bundle_identifier: com.erihdev.wazni
@@ -70,6 +70,9 @@ workflows:
         - appstore_credentials     # يحتوي APP_STORE_CONNECT_*
 
     scripts:
+      - name: Disable Swift Package Manager
+        script: flutter config --no-enable-swift-package-manager
+
       - name: Get packages
         script: flutter pub get
 
