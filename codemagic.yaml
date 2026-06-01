@@ -62,7 +62,7 @@ workflows:
     instance_type: mac_mini_m2
 
     environment:
-      flutter: stable
+      flutter: 3.24.5
       ios_signing:
         distribution_type: app_store
         bundle_identifier: com.erihdev.wazni
