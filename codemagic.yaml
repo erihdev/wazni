@@ -1,0 +1,143 @@
+workflows:
+
+  # ══════════════════════════════════════════════════════════
+  #  Android — Google Play / APK
+  # ══════════════════════════════════════════════════════════
+  android-release:
+    name: Android Release
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+
+    environment:
+      flutter: stable
+      android_signing:
+        - wazni_keystore          # ← اسم الـ keystore في Codemagic
+      groups:
+        - firebase_credentials    # يحتوي GOOGLE_SERVICES_JSON
+
+    scripts:
+      - name: Get packages
+        script: flutter pub get
+
+      - name: Run tests
+        script: flutter test --no-pub || true
+
+      - name: Build Android APK (debug — للاختبار السريع)
+        script: |
+          flutter build apk --release \
+            --build-name=1.0.0 \
+            --build-number=$(($(google-play get-latest-build-number \
+              --package-name com.erihdev.wazni \
+              --tracks=alpha) + 1))
+
+      - name: Build Android App Bundle (للـ Play Store)
+        script: |
+          flutter build appbundle --release \
+            --build-name=1.0.0 \
+            --build-number=$BUILD_NUMBER
+
+    artifacts:
+      - build/app/outputs/flutter-apk/*.apk
+      - build/app/outputs/bundle/release/*.aab
+
+    publishing:
+      google_play:
+        credentials: $GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
+        track: internal
+        submit_as_draft: true
+      email:
+        recipients:
+          - erihdev@gmail.com
+        notify:
+          success: true
+          failure: true
+
+
+  # ══════════════════════════════════════════════════════════
+  #  iOS — TestFlight
+  # ══════════════════════════════════════════════════════════
+  ios-testflight:
+    name: iOS TestFlight
+    max_build_duration: 90
+    instance_type: mac_mini_m2
+
+    environment:
+      flutter: stable
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.erihdev.wazni
+      groups:
+        - appstore_credentials     # يحتوي APP_STORE_CONNECT_*
+
+    scripts:
+      - name: Get packages
+        script: flutter pub get
+
+      - name: Set build number from App Store Connect
+        script: |
+          BUILD_NUMBER=$(app-store-connect get-latest-testflight-build-number \
+            "com.erihdev.wazni")
+          echo "BUILD_NUMBER=$((BUILD_NUMBER + 1))" >> $CM_ENV
+
+      - name: Build iOS IPA
+        script: |
+          flutter build ipa --release \
+            --build-name=1.0.0 \
+            --build-number=$BUILD_NUMBER \
+            --export-options-plist=/Users/builder/export_options.plist
+
+    artifacts:
+      - build/ios/ipa/*.ipa
+
+    publishing:
+      app_store_connect:
+        api_key: $APP_STORE_CONNECT_PRIVATE_KEY
+        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
+        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
+        submit_to_testflight: true
+        beta_groups:
+          - "External Testers"
+      email:
+        recipients:
+          - erihdev@gmail.com
+        notify:
+          success: true
+          failure: true
+
+
+  # ══════════════════════════════════════════════════════════
+  #  Web — Firebase Hosting
+  # ══════════════════════════════════════════════════════════
+  web-firebase:
+    name: Web Firebase Hosting
+    max_build_duration: 30
+    instance_type: linux_x2
+
+    environment:
+      flutter: stable
+      groups:
+        - firebase_credentials
+
+    scripts:
+      - name: Get packages
+        script: flutter pub get
+
+      - name: Build web
+        script: flutter build web --release --web-renderer canvaskit
+
+      - name: Deploy to Firebase Hosting
+        script: |
+          npm install -g firebase-tools
+          firebase deploy --only hosting --token "$FIREBASE_TOKEN" \
+            --project wazni-902b8
+
+    artifacts:
+      - build/web/**
+
+    publishing:
+      email:
+        recipients:
+          - erihdev@gmail.com
+        notify:
+          success: true
+          failure: false
