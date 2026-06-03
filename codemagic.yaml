@@ -55,7 +55,7 @@ workflows:
     instance_type: mac_mini_m2
 
     integrations:
-      app_store_connect: Wazni Key
+      app_store_connect: Codemagic
 
     environment:
       flutter: stable
