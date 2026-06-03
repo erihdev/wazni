@@ -85,6 +85,7 @@ workflows:
           flutter build ipa --release \
             --build-name=1.0.0 \
             --build-number=$BUILD_NUMBER \
+            --no-swift-package-manager \
             --export-options-plist=/Users/builder/export_options.plist
 
     artifacts:
