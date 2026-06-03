@@ -54,6 +54,9 @@ workflows:
     max_build_duration: 90
     instance_type: mac_mini_m2
 
+    integrations:
+      app_store_connect: Codemagic
+
     environment:
       flutter: stable
       xcode: latest
@@ -94,7 +97,6 @@ workflows:
 
     publishing:
       app_store_connect:
-        api_key: Codemagic
         submit_to_testflight: true
       email:
         recipients:
