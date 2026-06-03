@@ -11,9 +11,9 @@ workflows:
     environment:
       flutter: stable
       android_signing:
-        - wazni_keystore          # ← اسم الـ keystore في Codemagic
+        - wazni_keystore
       groups:
-        - firebase_credentials    # يحتوي GOOGLE_SERVICES_JSON
+        - firebase_credentials
 
     scripts:
       - name: Get packages
@@ -22,22 +22,15 @@ workflows:
       - name: Run tests
         script: flutter test --no-pub || true
 
-      - name: Build Android APK (debug — للاختبار السريع)
+      - name: Build Android App Bundle
         script: |
-          flutter build apk --release \
+          flutter build appbundle --release \
             --build-name=1.0.0 \
             --build-number=$(($(google-play get-latest-build-number \
               --package-name com.erihdev.wazni \
               --tracks=alpha) + 1))
 
-      - name: Build Android App Bundle (للـ Play Store)
-        script: |
-          flutter build appbundle --release \
-            --build-name=1.0.0 \
-            --build-number=$BUILD_NUMBER
-
     artifacts:
-      - build/app/outputs/flutter-apk/*.apk
       - build/app/outputs/bundle/release/*.aab
 
     publishing:
@@ -61,52 +54,53 @@ workflows:
     max_build_duration: 90
     instance_type: mac_mini_m2
 
+    integrations:
+      app_store_connect: Wazni Key
+
     environment:
       flutter: stable
       xcode: latest
       cocoapods: default
       groups:
-        - appstore_credentials     # يحتوي APP_STORE_CONNECT_*
+        - appstore_credentials
 
     scripts:
-      - name: Configure code signing
+      - name: Set up keychain
+        script: keychain initialize
+
+      - name: Fetch signing files
         script: |
-          xcode-project use-profiles \
-            --project ios/Runner.xcodeproj \
-            --export-options-plist /Users/builder/export_options.plist
+          app-store-connect fetch-signing-files com.erihdev.wazni \
+            --type IOS_APP_STORE \
+            --create
+
+      - name: Add certificates to keychain
+        script: keychain add-certificates
+
+      - name: Set up code signing
+        script: xcode-project use-profiles
 
       - name: Get packages
         script: flutter pub get
 
-      - name: Install CocoaPods dependencies
+      - name: Install CocoaPods
         script: cd ios && pod install
 
-      - name: Set build number from App Store Connect
+      - name: Set build number
         script: |
           BUILD_NUMBER=$(app-store-connect get-latest-testflight-build-number \
             "com.erihdev.wazni")
           echo "BUILD_NUMBER=$((BUILD_NUMBER + 1))" >> $CM_ENV
 
-      - name: Build iOS app
+      - name: Build iOS IPA
         script: |
-          flutter build ios --release \
+          flutter build ipa --release \
             --build-name=1.0.0 \
-            --build-number=$BUILD_NUMBER
-
-      - name: Archive and export IPA
-        script: |
-          xcodebuild -workspace ios/Runner.xcworkspace \
-            -scheme Runner \
-            -configuration Release \
-            -archivePath /tmp/Runner.xcarchive \
-            archive | xcpretty
-          xcodebuild -exportArchive \
-            -archivePath /tmp/Runner.xcarchive \
-            -exportOptionsPlist /Users/builder/export_options.plist \
-            -exportPath /tmp/ipa | xcpretty
+            --build-number=$BUILD_NUMBER \
+            --export-options-plist=/Users/builder/export_options.plist
 
     artifacts:
-      - /tmp/ipa/*.ipa
+      - build/ios/ipa/*.ipa
 
     publishing:
       app_store_connect:
